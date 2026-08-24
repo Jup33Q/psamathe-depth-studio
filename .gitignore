@@ -1,0 +1,9 @@
+.build/
+.swiftpm/
+.DS_Store
+DerivedData/
+xcuserdata/
+
+# agent 工作文档仅本地保留；GitHub 上 docs/ 只留 roadmap 作为公开预期开发计划
+docs/*
+!docs/image-editor-roadmap.md
