@@ -1,6 +1,6 @@
 # RayDepthStudio 转正路线图：UI 示例 → 可用图像编辑器（固化 plan）
 
-> 日期：2026-08-24 · 状态：**M3.5 已完成 · M3.3 待激活（项目文档 + MCP 基座 + Metal FX 实时编辑，优先于 M4；用户指示 MCP 适配尽快上）**
+> 日期：2026-08-24 · 状态：**M3.4 已完成（检查器数值控件与颜色选择增强）· 下一阶段 M3.7（图块重命名 + 跟随保持热修）→ M4（实时源与性能）**
 > 项目：核心库 `~/Documents/kimi/workspace/RayDepthStudio`（SwiftPM 库）+ UI `~/Documents/kimi/workspace/RayDepthStudioUI`（SwiftPM executable，`swift run RayDepthStudioUI`）
 > 执行入口：skill `raydepth-editor-roadmap`（激活后按本文当前阶段执行）
 > 产品定位：基于深度的重光照图像编辑器（RayRelight 血统：depth → normal → 多光源着色）
@@ -26,6 +26,8 @@
 | **M3.3** | 文档 + MCP + Metal FX（优先于 M4） | 文档体系化；MCP 基座（HTTP，skills 文档）；Metal FX 导入 + 实时编辑显示 |
 | **M3.4** | 检查器数值与颜色控件 | depth 滑杆扩域 + 每滑杆 reset；颜色 RGB/HSV/吸管/调色板 |
 | **M3.5** | 光源 gizmo 显隐与锁定/跟随 | 全局 gizmo 隐藏；单灯锁定（藏圆点）；锁定灯随鼠标（唯一） |
+| **M3.6** | 界面文案与本地化（排于 M3.3 后、M4 前） | 术语表 + xcstrings 基座（zh-Hans/en）+ 全文案收敛 + 双语验证 |
+| **M3.7** | 图块重命名 + 跟随保持热修（排于 M4 前） | 图片可重命名；灯光跟随跨页签/跨选中不丢 |
 | **M4** | 实时源与性能 | camera/NDI/Syphon 帧流、stream depth、Metal 化 |
 | **M5** | AI 算子经 MCP 开放 | SAM3 分割 / BiRefNet 抠图 / DA 深度重绘 + 算子 skills 文档 |
 | **M6** | 架构重构与社区插件化 | 插件协议/包格式/加载器 + 社区开发文档 |
@@ -327,9 +329,13 @@ AI 算子（M5）、合成主链 Metal 化（M4 任务 4，与 MetalFXEngine 共
 **背景**（2026-08-24 用户指令，附检查器截图）：①depth 的 min/max 滑杆取值范围太窄
 （0...1），M3.1 后 remap 不裁剪、超出 [0,1] 有物理意义但拖不到；每个 slider 旁要
 value reset 按钮。②颜色格式支持仿 Xcode asset 颜色选项：经典 HSV、点击铅笔（吸管）
-选颜色、调色板，可切换。现状：`InspectorView.swift` depth 区（:172，Min/Max `0...1`、
-强度 `0...3`、窗口可视化胶囊按 [0,1] 域计算）与光源 Color 区（:282，R/G/B `0...1`
-三滑杆 + 预览条）。
+选颜色、调色板，可切换。现状（M3.6 并入后实况）：`InspectorView.swift` depth 区
+（`depthSection` :176，Min/Max `0...1`、强度 `0...3`、窗口可视化胶囊按 [0,1] 域计算）
+与光源 Color 区（:304，R/G/B `0...1` 三滑杆 + 预览条）。
+**M3.6 本地化基座已并入**：新增用户可见文案一律 `String(localized:)` 禁拼接、
+xcstrings 同步 en、术语表 `docs/ui-copy-glossary.md` 白名单不译。
+**版本戳**：`BuildStamp.swift` 改 `0.3.4-m3.4` 后跑 `Scripts/build-app.sh`；
+桌面现存 0.3.6-m3.6 包为 M3.6 会话先行部署（里程碑乱序），覆盖前向用户确认。
 
 任务（按序）：
 
@@ -353,10 +359,11 @@ value reset 按钮。②颜色格式支持仿 Xcode asset 颜色选项：经典 
 
 验收：
 
-1. 36 项 checks + 33 项 harness 全过（纯 UI 改动，预期零影响；M3.3 未执行则无 verify.sh，手动两条命令）
+1. `Scripts/verify.sh` 一键 40 项 checks + 45 项 harness 全过（纯 UI 改动，预期零影响）
 2. 目视：min 拖到 −0.5 / max 拖到 1.5 深度窗口推拉正确、可视化胶囊不画错；每个
    reset 一键回默认；HSV↔RGB 切换数值互洽；吸管取屏色生效；调色板选择生效
-3. M1–M3.3 回归无退化（含 undo——reset/取色均可撤销）；冷启动 8 秒无崩溃
+3. 双语抽查：en 环境下新增文案（reset/HSV/吸管/调色板）无白名单外中文残留
+4. M1–M3.5 + M3.3 + M3.6 回归无退化（含 undo——reset/取色均可撤销）；冷启动 8 秒无崩溃
 
 不做：色域（sRGB/Display P3）管理、图块占位色选择、检查器布局重构。
 
@@ -403,6 +410,62 @@ depth 页签光源交互）；`LightSource` 无锁定/跟随字段（合成 Coda
    冷启动 8 秒无崩溃
 
 不做：gizmo 配色主题化、非锁定灯跟随、跟随路径记录/动画。
+
+---
+
+## M3.6 · 界面文案与本地化（排于 M3.3 后、M4 前）
+
+> 执行入口：`docs/m3.6-ui-copy-localization-activation-prompt.md`（自包含激活提示词，2026-08-24 固化，含全文案清单）
+
+**背景**（2026-08-24 用户指令）：界面文案全是硬编码中文、中英混排无规则、零本地化基础。要求文案制度化并做 zh-Hans / en 双语，为 M5 社区开放与公开 repo 形象打底。
+
+任务（按序）：
+
+1. **文案盘点与术语表**：全量盘点用户可见字符串（激活提示词附现状清单）；术语表落 `docs/ui-copy-glossary.md`；不译白名单（页签五名、depth/normal/gizmo/MetalFX/raySet/Phokos/DA3/sidecar/NDI/Syphon）
+2. **本地化基座**：`Package.swift` 加 `defaultLocalization: "zh-Hans"` + target resources；`Localizable.xcstrings`（source zh-Hans，目标 en）；全部用户可见字符串收敛，插值一律显式 `String(localized:)`（禁止字符串拼接，en 语序必错）
+3. **文案统一**：错误信息统一「<动作>失败：<原因>」；同一概念唯一译法
+4. **双语运行验证**：en 环境五屏 + 错误态白名单外零中文；zh-Hans 与现状逐屏一致
+5. **部署**：`Scripts/build-app.sh` 出 `0.3.6-m3.6` 版本戳包，重建桌面失效的 .app
+
+验收：40 项 checks + 35 项 harness 全过；en/zh-Hans 双环境核对通过；术语一致、插值语序正确；M1–M3.5 回归无退化；冷启动 8 秒无崩溃。
+
+不做：其他语言、系统级菜单、动态语言切换设置页、MCP/FX 编辑器 UI 文案（M3.3 沿用本基座）。
+
+---
+
+## M3.7 · 图块重命名 + 灯光跟随状态保持热修（排于 M4 前）
+
+> 执行入口：`docs/m3.7-tile-rename-follow-persist-activation-prompt.md`（自包含激活提示词，2026-08-24 固化）
+
+**背景**（2026-08-24 用户 M3.4 验收后指令，两条）：
+
+1. **图片需要可重命名**。现状：图块名称 = 输入源 `InputSource.name`（导入时取文件名去扩展名），检查器 header（`InspectorView.swift` `TileInspectorContent.header`）与左面板行（`LayerPanelView.swift:52`）均只读显示。核心 `InputSource.name` 是 `var { get set }`，但 `StudioProject.sources` 为 `public internal(set)`（existential 字典），UI 无改名通道。
+2. **bug：灯光跟随鼠标时，点击其他页签或其他光源会丢失跟随状态**。确诊（M3.5 两处有意设计的自动结束点，用户现认定为 bug）：`StudioViewModel.selectedLightID.didSet`（:81-83，选中他灯 → `endLightFollow`）与 `selectTab`（:199，切页签 → `endLightFollow`）。`updateLightFollow` 本身不限页签（hover 链路全页签触发，`StudioCanvasView.swift:127`），移除这两个自动结束点后行为自洽：跟随跨页签、跨选中持续。
+
+任务（按序）：
+
+1. **核心 additive `renameSource`**（用户直接指令视为获批；纯增量不改既有行为）
+   - `StudioProject` += `mutating func renameSource(_ id: UUID, to name: String)`：源存在且名称有变化才改；checks 加断言（改名生效 / 不存在 id 空操作 / 图块关联不受影响）
+   - Codable 零改动（`name` 已在源信封内，工程存取天然保留）；undo 走既有快照栈天然兼容
+2. **ViewModel 通道 + 检查器改名 UI**
+   - `StudioViewModel.renameSource(ofTile tileID: UUID, to name: String)`：经 `project` 提交自动入 undo；守卫——trim 后为空不改、未变化不压栈
+   - 检查器图块 header 名称点击可编辑：点名称 → TextField（回车提交 / Esc 取消放弃），提交走上述通道；左面板行与画布 chrome 读同一 `sourceName`，随模型自动刷新，零额外改动
+   - 新文案走本地化基座（`String(localized:)` 禁拼接、xcstrings 补 en、白名单不译）
+3. **跟随状态保持热修**
+   - 移除两处自动结束：`selectedLightID.didSet` 的「选中他灯结束跟随」（:81-83）与 `selectTab` 的「切页签结束跟随」（:199）
+   - 保留的结束条件不变：检查器 toggle 关、解锁、删除灯、开第二盏跟随（核心唯一性 + `setLightFollowsMouse` :755 先提交第一盏最终位置）、MCP `updateLightParams` 显式关/解锁
+   - 效果：跟随跨页签、跨选中持续，鼠标划过任意页签画布均实时跟随（hover 链路现状即全页签触发）；最终位置提交推迟到显式结束点，仍一格 undo
+   - 决策点（最小改动）：切 Light 页签的自动选中逻辑（跳过锁定灯）不变；选中他灯后检查器操作他灯与跟随互不干扰
+4. **收尾例行**：roadmap 状态行/进度日志 + skill 当前阶段；`BuildStamp.swift` 改 `0.3.7-m3.7` 后跑 `Scripts/build-app.sh`（桌面现存 0.3.4-m3.4，版本号递增，直接覆盖）
+
+验收：
+
+1. `Scripts/verify.sh` 一键（40+新增 checks + 45 harness）全过
+2. 目视：检查器点名称改名，回车生效、Esc 取消；左面板与画布 chrome 名称同步刷新；改名可 undo；工程保存→重开名称保留
+3. 目视：开跟随后切页签、点选其他灯/图块，跟随不丢、光照实时跟随；toggle 关/解锁仍正常结束并提交最终位置（可 undo）；两灯跟随唯一性不变（开第二盏自动结束第一盏）
+4. en 环境新文案无白名单外中文残留；M1–M3.6 回归无退化；冷启动 8 秒无崩溃
+
+不做：光源重命名 UI（MCP `updateLightParams` 已有 name 通道，UI 入口另议）、左面板行内改名、MCP rename tool、批量改名。
 
 ---
 
@@ -473,7 +536,7 @@ depth 页签光源交互）；`LightSource` 无锁定/跟随字段（合成 Coda
 
 ## 贯穿约束（每阶段硬门槛）
 
-- `swift run raydepth-checks` 36 项全过；核心库 API 变更须先停下报告，获批才动
+- `swift run raydepth-checks` 40 项全过；核心库 API 变更须先停下报告，获批才动
 - macOS 13+、Swift 5.9、不用 macOS 14 才有的 API；无第三方依赖（M4 NDI SDK 除外）
 - 拖拽热路径零 `@Published` 发布的架构不许回退（新功能刷新走 DragPreview 式独立通道）
 - 深度数据契约 **near=high（值大=近）**：任何新生产者入口（sidecar / 估计器 / FX / AI 算子）
@@ -538,3 +601,20 @@ depth 页签光源交互）；`LightSource` 无锁定/跟随字段（合成 Coda
   - 决策点记录：「锁定时清除既有选中」与「锁定后才能开跟随」在检查器流程上互斥（清选中即检查器消失、跟随无从开启）——取最小冲突解：锁定 toggle 保留当前选中（gizmo/命中/拖动已被锁定态门控，点他处后不可再选），undo 回放产生的锁定态选中由 pruneSelection 清除。
   - 验收：40 项 checks 全过（+4：默认关闭/开启跟随/唯一性/可关闭）；35 项 harness 全过（+G8 新字段往返、G9 旧工程无新键解码回退）；桌面 .app 更新为 0.3.5-m3.5（窗口标题版本戳），冷启动 8s 无崩溃；CU 实测：眼睛开关全局藏/显 gizmo、锁定灯圆点消失、锁定+跟随后鼠标划过画布光照实时跟随全程无 gizmo、检查器数值经 DragPreview 实时跟随；旧格式工程（无新字段）实机打开正常。跟随实时跟随与关跟随 undo 由用户目视确认通过
   - 下一步：用户指示 MCP 适配尽快上 → M3.3（激活入口 `docs/m3.3-docs-mcp-metalfx-activation-prompt.md`）
+- 2026-08-24 · **M3.6 立项**（排于 M3.3 后、M4 前；用户指令）：界面文案制度化 + zh-Hans/en 本地化——全量文案盘点与术语表（`docs/ui-copy-glossary.md`）、xcstrings 基座（`defaultLocalization: zh-Hans` + target resources）、插值显式 `String(localized:)` 禁拼接、双环境运行验证、`0.3.6-m3.6` 版本戳包重建桌面失效 .app。修复方案见 M3.6 节；激活提示词固化到 `docs/m3.6-ui-copy-localization-activation-prompt.md`（含全文案清单）并登记入口。M3.3 待激活状态不变（MCP 优先）
+- 2026-08-24 · **M3.3 完成**：项目文档体系 + MCP 基座 + Metal FX 实时编辑。核心库 `Sources/` 零改动。
+  - **任务 1 防退化基座**：核心库 `Scripts/verify.sh`（checks + harness 串联，任一失败非零退出）；UI `Scripts/build-app.sh`（版本号唯一来源 `BuildStamp.swift` → sed 提取 → 与构建日期一起写入 .app Info.plist，部署 ~/Desktop；窗口标题运行时优先读 bundle、开发态回退常量）；UI `Sources/RayDepthStudioUI/BuildStamp.swift` 为全仓唯一版本硬编码点
+  - **任务 3 MCP 基座**：UI 新 target `RayDepthMCP`（零第三方依赖）——`MCPServer`（NWListener 经 `requiredLocalEndpoint` 仅绑 127.0.0.1:8377，`RAYDEPTH_MCP_PORT` 可配、`RAYDEPTH_MCP_DISABLED=1` 关闭；HTTP/1.1 手写解析、keep-alive、通知 202）+ 最小 JSON-RPC 2.0（initialize/ping/tools/list/tools/call，batch 支持）；`MCPBridge`（App 侧 @MainActor 桥）注册 11 首波工具 + FX 落地后 fx.list/fx.reload 共 13 件；ViewModel 追加程序化通道（openProject(at:)/saveProject(to:)/importImage(from:layer:)/exportPNG(to:size:)/setDepthMix/setTileDepthRange/updateLightParams），写操作全走既有提交通道（入 undo、触发 relight sync），零旁路
+  - **任务 4 Metal FX**：`RayDepthRelight/MetalFXEngine.swift`（共享 MTLDevice+专属队列，init 留 M4 注入点；`makeLibrary(source:)` 后台编译、成功原子热替换、失败保留上一可用版并透出带行号错误；双 pass 离屏渲染 RGBA8 albedo→CGImage + R32Float depth→[Float]）；`DepthTextureStore` 加 `update(_:depthFloat:size:)` 原地更新 + 每 ref 版本号，`RelightCompositor` 深度缓存键纳入版本号（缓存陷阱守门）；`FXController`（库目录 `~/Library/Application Support/RayDepthStudio/FX/` 播种 gradient/checker/wave-heightfield 三内置示例、30fps 帧流走独立通道零 project 发布、无 FX 源停表零开销、加载自愈走 `RelightBridge.fxHealedSources` 场景层覆盖——核心 sources internal(set) 不可写，不改核心取场景层方案）；`FXPanelView`（NSTextView 编辑器 + 0.5s 防抖自动保存重编译 + 失败行号横幅）；「添加输入源」MetalFX 子菜单按库文件建真源；wave-heightfield generatesDepth，深度 near=high 引擎不隐式反转
+  - **任务 2 文档**：核心 README 重写至 M3.3；UI README 更新四 target + MCP/FX；`docs/README.md` 全量索引新建；两 repo `AGENTS.md` 新建（构建命令/架构红线/目录导览）；`docs/mcp/` 14 页（总览 + 13 工具页）；总览 skill `raydepth-mcp` 新建；M3.3 期文档复查 `docs/documentation-review-2026-08-24-m33.md`（贯穿约束计数 36→40 已修）
+  - 验收：`Scripts/verify.sh` 一键 **40 checks + 45 harness 全过**（H 区新增 H1–H10：引擎可用/wave 编译探测/albedo 非纯色/**不隐式反转守门**（恒定 0.75 透传）/wave near=high 方向/语法错误带行号/失败保留上一版/FX 深度参与 max 融合波峰波谷胜者断言×2/store.update 缓存失效守门）；`mcp-smoke.sh` 10 步全过（initialize→202→tools/list 13 件→importImage+sidecar→listTiles→setMix/setDepthRange 回读→export 512px 且 depthRange 改动后像素级差异→save/open 往返→fx.list→fx.reload）；MCP 仅绑 loopback 经 lsof 实测；build-app.sh 端到端产出带版本戳桌面包
+  - **偏差记录**：①验收节文本「40+35」实际为 40+45（H 区新增 10 项，语义不变）②版本戳：并行 M3.6 会话先将 BuildStamp 升为 0.3.6-m3.6 并部署桌面；经用户指示两会话成果合并交付，M3.3 内容随 0.3.6-m3.6 包落地（plan 示例 0.3.3-m3.3 未实际使用）③施工期与 M3.6 会话同仓并行，曾遇构建竞态与端口残留进程，均已清理；最终 verify/smoke 在合并树上复跑全绿
+  - 遗留：FX GUI 目视三项（wave 图块画布内重光照+max 融合观感、编辑器热更 ≤1s、语法错误横幅）待用户切到 app 窗口后 CU 驱动确认（无头 H 区已覆盖等价断言）；M1/M1.5 人工回归沿袭（未触碰这些路径）；桌面旧进程（0.3.5-m3.5 内存实例）待用户关闭
+- 2026-08-24 · **M3.4 完成**：检查器数值控件与颜色选择增强。核心库零改动；改动集中在 UI 层 `InspectorView.swift` / `StudioViewModel.swift` / 本地化资源。
+  - **任务 1 滑杆扩域 + reset**：depth Min/Max 域 `0...1` → `-1...2`（强度维持 `0...3`）；窗口可视化胶囊同步改按 [-1,2] 线性映射（显示分数 clamp 到 [0,1] 防脏数据画错）。`SliderRow` 加可选 `defaultValue`——行右 `arrow.counterclockwise` reset 按钮一处改动全检查器生效（depth min→0/max→1/强度→1、光源强度→1/半径→200/RGB→1、HSV H→0/S→0/V→1，默认值取核心库模型默认）；reset 走既有 onChange 通道单次提交入 undo，当前值已是默认时禁用（防空提交污染 undo 栈）
+  - **决策点记录**：核心 `DepthRange.init` 仍将 min/max clamp 到 [0,1]（M3.1 remap 零裁剪语义改了行为、构造期 clamp 未动），与「核心库零改动」约束冲突——取最小改动解：`StudioViewModel.setDepthMin/setDepthMax` 由构造新值改为直改公有 var（绕开构造期 clamp），保序语义（min 超 max 时推齐对方）与改前一致；Codable 合成实现本就不经 init，越界值工程存取往返无损；MCP `setTileDepthRange` 既有 [0,1] clamp 维持不动（契约不受影响）
+  - **任务 2 颜色选择增强**：Color 区 segmented 切换 RGB（三滑杆）/HSV（H 0...360、S/V 0...1），切换态为视图本地 @State；HSV↔RGB 换算在 UI 层纯函数（`rgbToHsv`/`hsvToRgb`），存储仍 `LightSource.colorRGB`；`hueCache` 解决 S=0/V=0 色相无定义时 H 滑杆回弹。吸管 `NSColorSampler`（eyedropper 按钮取屏色，sRGB 归一）；调色板为 `NSColorWell` 桥接（`ColorWellView`，替代原不可交互预览条，系统调色板/swatches 回写，updateNSView 有 sRGB 分量变更守卫防闭环）。三入口共用既有 onRed/onGreen/onBlue 通道 + 逐通道变更守卫（未变化分量不提交）
+  - **本地化**：新增文案全部 `String(localized:)`——「重置为默认值」Reset to Default、「从屏幕取色」Sample a color from the screen；RGB/HSV/H/S/V 按双语同形标识符入 xcstrings；`Scripts/xcstrings-to-strings.py` 重新生成 en.lproj/Localizable.strings（114 条）
+  - 验收：`Scripts/verify.sh` 一键 40 checks + 45 harness 全过；`swift build` 零新增告警；核心库 `Sources/` 零改动
+  - 遗留（人工）：目视项——min −0.5 / max 1.5 窗口推拉与胶囊显示、各 reset 回默认且可 undo、HSV↔RGB 互洽、吸管/调色板实机生效、en 环境新文案核对、冷启动 8s——待 build-app.sh 交付包上机确认
+- 2026-08-24 · M3.4 用户验收通过（「效果不错」）→ **M3.7 立项**（排于 M4 前）：①图块重命名（用户指令）——核心 additive `StudioProject.renameSource` + ViewModel 通道 + 检查器 header 点击编辑；②跟随保持热修（用户报告 bug）——灯光跟随鼠标时切页签/选中他灯丢失跟随，确诊为 M3.5 两处有意设计的自动结束点（`selectedLightID.didSet` :81、`selectTab` :199），移除后跟随跨页签/跨选中持续（`updateLightFollow` 本就不限页签），显式结束条件（toggle 关/解锁/删除/开第二盏/MCP）不变。修复方案见 M3.7 节；激活提示词固化到 `docs/m3.7-tile-rename-follow-persist-activation-prompt.md` 并登记入口；状态行与 skill 当前阶段已同步指向 M3.7。同日两会话成果（M3.3+M3.6+M3.4）提交 GitHub
