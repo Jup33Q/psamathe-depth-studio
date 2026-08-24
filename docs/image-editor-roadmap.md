@@ -1,6 +1,6 @@
 # RayDepthStudio 转正路线图：UI 示例 → 可用图像编辑器（固化 plan）
 
-> 日期：2026-08-24 · 状态：**M3.4 已完成（检查器数值控件与颜色选择增强）· 下一阶段 M3.7（图块重命名 + 跟随保持热修）→ M4（实时源与性能）**
+> 日期：2026-08-24 · 状态：**M3.7 已完成（图块重命名 + 灯光跟随状态保持热修）· 下一阶段 M4（实时源与性能）**
 > 项目：核心库 `~/Documents/kimi/workspace/RayDepthStudio`（SwiftPM 库）+ UI `~/Documents/kimi/workspace/RayDepthStudioUI`（SwiftPM executable，`swift run RayDepthStudioUI`）
 > 执行入口：skill `raydepth-editor-roadmap`（激活后按本文当前阶段执行）
 > 产品定位：基于深度的重光照图像编辑器（RayRelight 血统：depth → normal → 多光源着色）
@@ -471,18 +471,19 @@ depth 页签光源交互）；`LightSource` 无锁定/跟随字段（合成 Coda
 
 ## M4 · 实时源与性能
 
-> 执行入口：`docs/m4-realtime-performance-activation-prompt.md`（自包含激活提示词，2026-08-24 固化）
+> 执行入口：`docs/m4-realtime-performance-activation-prompt.md`（自包含激活提示词，2026-08-24 固化，M3.7 交付后刷新）
 
 **目标**：活源接入 + 大工程流畅。
 
 任务：
 
 1. Camera 输入（AVFoundation 绑定层实现 `nextFrame()`）
-2. NDI / Syphon 帧流（复用 RayRelightNDI 接收代码；NDI SDK 是唯一允许的新外部依赖）
-3. `StreamDepth` stride 调度 + 估计器内 EMA 平滑落地
-4. 合成渲染 Metal 化（MTKView 替换 SwiftUI Canvas 合成层；交互层保留 SwiftUI）
+2. **MetalFX 灯光联动热修**（M3.7 遗留 bug，用户 2026-08-24 报告，排 M4 中前期）：移动灯光时 MetalFX 图块不随光照更新——拖灯/跟随的实时重着色对普通图块正常，FX 图块着色不刷新。嫌疑方向（待确诊）：FX 图块经 `MetalFXEngine` 离屏入 `DepthTextureStore`/ImageStore，拖灯走 `RelightBridge.previewLights` 重着色通道，FX 图块未纳入该预览重着色链或其 albedo/深度缓存未随灯光预览失效。修复须保持「帧流/拖灯热路径零 @Published project 发布」架构
+3. NDI / Syphon 帧流（复用 RayRelightNDI 接收代码；NDI SDK 是唯一允许的新外部依赖）
+4. `StreamDepth` stride 调度 + 估计器内 EMA 平滑落地
+5. 合成渲染 Metal 化（MTKView 替换 SwiftUI Canvas 合成层；交互层保留 SwiftUI）——本项落地时任务 2 的修复须迁移等价生效，不回退
 
-验收：一路 camera + stream depth 稳定 30fps；记录 CPU/GPU/内存基线写进 docs。
+验收：一路 camera + stream depth 稳定 30fps；记录 CPU/GPU/内存基线写进 docs；移动灯光（含跟随）时 MetalFX 图块与普通图块同步实时重着色。
 
 > M3.3 衔接：camera/NDI/Syphon 源接入后，对应控制面（源增删、stride 参数）补进 MCP tools；
 > 合成主链 Metal 化与 M3.3 `MetalFXEngine` 统一共用 MTLDevice/队列设计，避免两套 Metal 栈。
@@ -536,7 +537,7 @@ depth 页签光源交互）；`LightSource` 无锁定/跟随字段（合成 Coda
 
 ## 贯穿约束（每阶段硬门槛）
 
-- `swift run raydepth-checks` 40 项全过；核心库 API 变更须先停下报告，获批才动
+- `swift run raydepth-checks` 44 项全过；核心库 API 变更须先停下报告，获批才动
 - macOS 13+、Swift 5.9、不用 macOS 14 才有的 API；无第三方依赖（M4 NDI SDK 除外）
 - 拖拽热路径零 `@Published` 发布的架构不许回退（新功能刷新走 DragPreview 式独立通道）
 - 深度数据契约 **near=high（值大=近）**：任何新生产者入口（sidecar / 估计器 / FX / AI 算子）
@@ -618,3 +619,11 @@ depth 页签光源交互）；`LightSource` 无锁定/跟随字段（合成 Coda
   - 验收：`Scripts/verify.sh` 一键 40 checks + 45 harness 全过；`swift build` 零新增告警；核心库 `Sources/` 零改动
   - 遗留（人工）：目视项——min −0.5 / max 1.5 窗口推拉与胶囊显示、各 reset 回默认且可 undo、HSV↔RGB 互洽、吸管/调色板实机生效、en 环境新文案核对、冷启动 8s——待 build-app.sh 交付包上机确认
 - 2026-08-24 · M3.4 用户验收通过（「效果不错」）→ **M3.7 立项**（排于 M4 前）：①图块重命名（用户指令）——核心 additive `StudioProject.renameSource` + ViewModel 通道 + 检查器 header 点击编辑；②跟随保持热修（用户报告 bug）——灯光跟随鼠标时切页签/选中他灯丢失跟随，确诊为 M3.5 两处有意设计的自动结束点（`selectedLightID.didSet` :81、`selectTab` :199），移除后跟随跨页签/跨选中持续（`updateLightFollow` 本就不限页签），显式结束条件（toggle 关/解锁/删除/开第二盏/MCP）不变。修复方案见 M3.7 节；激活提示词固化到 `docs/m3.7-tile-rename-follow-persist-activation-prompt.md` 并登记入口；状态行与 skill 当前阶段已同步指向 M3.7。同日两会话成果（M3.3+M3.6+M3.4）提交 GitHub
+- 2026-08-24 · **M3.7 完成**：图块重命名 + 灯光跟随状态保持热修。核心库仅 additive 一处（`renameSource`），其余零改动；MCP 契约不受影响。
+  - **任务 1 核心 `renameSource`**：`StudioProject` += `mutating func renameSource(_ id: UUID, to name: String)`（源存在且名称有变化才改，图块经 sourceID 关联不受影响；Codable 零改动——name 已在源信封内，工程存取天然保留）；checks +4 断言（改名生效 / 不存在 id 空操作 / 同名不改 / 图块关联不受影响），核心 checks 40 → 44，verify.sh 与两 AGENTS.md 计数同步
+  - **任务 2 改名通道 + 检查器 UI**：`StudioViewModel.renameSource(ofTile:to:)`（trim 后为空或与现名相同守卫不压 undo 栈，有效改名经 project 提交自动入 undo）；`InspectorView.TileInspectorContent.header` 名称点击 → TextField（回车提交 / Esc `onExitCommand` 取消放弃，编辑态为视图本地 @State + @FocusState）；左面板行与画布 chrome 读同一 `vm.sourceName(for:)` 零改动自动刷新。本地化新增「点击改名」Click to Rename（xcstrings 115 条，脚本重新生成 en.lproj）
+  - **任务 3 跟随保持热修**：移除 `selectedLightID.didSet` 的「选中他灯结束跟随」与 `selectTab` 的「切页签结束跟随」两处自动结束点（失效注释同步清理）；保留结束条件不变——toggle 关 / 解锁 / 删除灯 / 开第二盏跟随（核心唯一性 + 先提交第一盏最终位置）/ MCP `updateLightParams` 显式关或解锁；切 Light 页签自动选中（跳过锁定灯）不变；跟随期位置仍走 DragPreview + `relight.previewLights` 预览通道，热路径零 @Published project 发布
+  - 验收：`Scripts/verify.sh` 一键 **44 checks + 45 harness 全过**；`swift build` 通过；版本戳 0.3.7-m3.7，`build-app.sh` 产出桌面包
+  - 遗留（人工）：目视项——检查器点名称改名（回车生效 / Esc 取消、左面板与画布 chrome 同步、可 undo、保存重开保留）；跟随跨页签/跨选中不丢且光照实时跟随、toggle 关/解锁正常结束提交最终位置（可 undo）、两灯跟随唯一性；en 环境新文案核对；冷启动 8s——待交付包上机确认
+  - 当日补记：改名（回车/Esc/三处同步/undo）与跟随保持（跨选中、唯一性、显式结束）已经 CU + MCP 双路上机实测通过；实测中发现新 bug「移动灯光时 MetalFX 图块不更新」，经用户指示留 M4 中前期热修，已登记 M4 任务 2
+- 2026-08-24 · M3.7 用户上机验收 → **M4 追加任务（中前期热修）**：移动灯光（拖灯/跟随）时 MetalFX 图块着色不随光照更新，普通图块正常。嫌疑方向：FX 图块未纳入 `RelightBridge.previewLights` 预览重着色链或其缓存未随灯光预览失效（待确诊）。已登记为 M4 任务 2（含「Metal 化落地后不回退」约束）+ 验收项；M4 激活提示词同步刷新。同日用户确认进入 M4

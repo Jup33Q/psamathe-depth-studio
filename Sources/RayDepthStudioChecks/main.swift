@@ -247,6 +247,20 @@ do {
 
     // 法线管线：默认基于混合后结果
     check(project.normalPipeline.mix == .zOrderTop, "normal 基于混合后整幅深度")
+
+    // M3.7：输入源重命名（additive）
+    let renameTile = project.tiles(in: .staticDepth).first!
+    let renameSourceID = renameTile.sourceID
+    project.renameSource(renameSourceID, to: "改名后的源")
+    check(project.sources[renameSourceID]?.name == "改名后的源", "renameSource 改名生效")
+    project.renameSource(UUID(), to: "幽灵")
+    check(project.sources.count == 32 && project.sources[renameSourceID]?.name == "改名后的源",
+          "renameSource 不存在的 id 空操作")
+    project.renameSource(renameSourceID, to: "改名后的源")
+    check(project.sources[renameSourceID]?.name == "改名后的源", "renameSource 同名不改")
+    check(project.canvas.tile(id: renameTile.id)?.sourceID == renameSourceID
+          && project.tiles(in: .staticDepth).contains(where: { $0.id == renameTile.id }),
+          "改名后图块关联不受影响")
 } catch {
     failures += 1
     print("  ❌ StudioProject 检查意外抛错: \(error)")

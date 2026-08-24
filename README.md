@@ -1,5 +1,17 @@
 # RayDepthStudio
 
+<p align="center">
+  <img src="icon/logo-1024.png" width="200" alt="RayDepthStudio Logo">
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white" alt="Swift 5.9">
+  <img src="https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white" alt="macOS 13+">
+  <img src="https://img.shields.io/badge/dependencies-0-brightgreen" alt="零第三方依赖">
+  <img src="https://img.shields.io/badge/checks-44%20passed-brightgreen" alt="核心 checks 44 项通过">
+  <img src="https://img.shields.io/badge/harness-45%20passed-brightgreen" alt="UI harness 45 项通过">
+</p>
+
 基于深度的重光照图像编辑器 —— 由 RayRelightNDI（NDI → DA3Mono 深度 → Metal 重打光）扩展而来。
 本仓库是**核心模型库**（纯值类型、无渲染）；UI 与渲染绑定层在
 `../RayDepthStudioUI`（SwiftPM package，path 依赖本库）。
@@ -14,8 +26,8 @@ near=high 深度契约统一、图块 chrome 降噪、光源 gizmo 显隐/锁定
 
 ```bash
 swift build                 # 核心库
-swift run raydepth-checks   # 断言检查器（环境无 XCTest 时的兜底验证，40 项）
-Scripts/verify.sh           # 一键验证：40 项 checks + UI 45 项 harness 串联，任一失败非零退出
+swift run raydepth-checks   # 断言检查器（环境无 XCTest 时的兜底验证，44 项）
+Scripts/verify.sh           # 一键验证：44 项 checks + UI 45 项 harness 串联，任一失败非零退出
 
 # UI 与渲染链验证（在 ../RayDepthStudioUI）
 swift run RayDepthStudioUI              # 运行编辑器

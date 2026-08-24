@@ -58,6 +58,14 @@ public struct StudioProject {
         canvas.remove(id: tileID)
     }
 
+    /// 重命名输入源（M3.7 additive）：源存在且名称有变化才改；
+    /// 图块经 sourceID 关联，不受改名影响。Codable 零改动（name 已在源信封内）。
+    public mutating func renameSource(_ id: UUID, to name: String) {
+        guard var source = sources[id], source.name != name else { return }
+        source.name = name
+        sources[id] = source
+    }
+
     // MARK: - 图层查询
 
     public func tiles(in kind: DepthKind) -> [SquareTile] {

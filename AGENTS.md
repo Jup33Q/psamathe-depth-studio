@@ -6,8 +6,8 @@
 
 ```bash
 swift build
-swift run raydepth-checks        # 40 项核心断言（Sources/RayDepthStudioChecks）
-Scripts/verify.sh                # 一键：40 项 checks + UI 45 项 harness（串联，任一失败非零退出）
+swift run raydepth-checks        # 44 项核心断言（Sources/RayDepthStudioChecks）
+Scripts/verify.sh                # 一键：44 项 checks + UI 45 项 harness（串联，任一失败非零退出）
 ```
 
 UI 包在同级目录 `../RayDepthStudioUI`（path 依赖本库）。
@@ -29,7 +29,8 @@ UI 包在同级目录 `../RayDepthStudioUI`（path 依赖本库）。
 - `Sources/RayDepthStudio/Inputs/` — InputSource 协议 + 五类源（NDI/Syphon/FileIn/MetalFX/Camera）；MetalFXSource.PlaneFX（shaderName/generatesDepth）供 UI 绑定层 FX 引擎使用
 - `Sources/RayDepthStudio/Matrix/` — DepthSupportMatrix
 - `Sources/RayDepthStudio/Studio/` — StudioProject / LightingRig / NormalPipeline / LayerPolicy / ProjectCodable
-- `Sources/RayDepthStudioChecks/` — 40 项轻量断言 CLI（无 XCTest 环境）
+- `Sources/RayDepthStudioChecks/` — 44 项轻量断言 CLI（无 XCTest 环境）
+- `icon/` — 项目 logo（`logo-1024.png` 为正式版；UI 包构建时取 `RayDepthStudioUI/icon/AppIcon-1024.png` 嵌入 .app）
 - `docs/` — roadmap（固化 plan）、各里程碑激活提示词、文档审查记录、`mcp/`（MCP 工具文档）
 - `Scripts/verify.sh` — 一键验证
 
