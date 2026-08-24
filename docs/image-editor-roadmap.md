@@ -259,18 +259,19 @@ max 融合实际选中了远表面：
 **背景**（2026-08-24 用户 M3.2 验收后指令）：下一步 = 项目文档优化 + MCP 支持 +
 Metal FX 导入与 Metal 代码实时编辑+显示。要求与 M4 及以后融洽，并把
 「深度 cut 方向反」类低级退化的防线制度化（M3.2 验收期曾发生旧二进制误判事故：
-桌面 0.3.0-m3 包无 M3.1 修复被当成新构建验收）。
+桌面 0.3.0-m3 包无 M3.1 修复被当成新构建验收）。M3.5 交付后用户指示：MCP 适配
+尽快上，本阶段任务 3（MCP 基座）优先。
 
 任务（按序）：
 
 1. **防退化基座**（小改动，先行）
-   - 一键验证脚本（核心库 `Scripts/verify.sh`）：36 项 checks + 33 项 harness 串联，任一失败即非零退出
+   - 一键验证脚本（核心库 `Scripts/verify.sh`）：40 项 checks + 35 项 harness 串联，任一失败即非零退出
    - 版本戳：app 窗口标题带版本号与构建日期（如 `RayDepthStudio · 0.3.3-m3.3 (2026-08-25)`），
      构建脚本自动写入 Info.plist——杜绝「拿旧包验收」误判
    - 验收纪律补进贯穿约束：只验收当次构建的包；深度数据任何新生产者入口必须显式
      处理 near=high 方向并在 harness 加守门断言
 2. **项目文档优化**
-   - 核心库 README 更新到 M3.3 现状（里程碑、36 checks、结构树、MCP/FX 指针）
+   - 核心库 README 更新到 M3.3 现状（里程碑、40 checks、结构树、MCP/FX 指针）
    - `docs/README.md` 索引：roadmap、全部激活提示词、文档审查记录、MCP 文档（任务 3 产出）
    - 两个 repo 补 `AGENTS.md`：构建/验证命令、架构红线（拖拽热路径零发布、单 Canvas、
      两段式交互、near=high 契约）、目录导览——任何 agent 进场可读
@@ -305,14 +306,14 @@ Metal FX 导入与 Metal 代码实时编辑+显示。要求与 M4 及以后融�
 
 验收：
 
-1. `Scripts/verify.sh` 一键 36+33 全过；窗口标题可见版本戳
+1. `Scripts/verify.sh` 一键 40+35 全过；窗口标题可见版本戳
 2. MCP 无头冒烟脚本全过：initialize → tools/list → importImage → listTiles 可见 →
    setMix/setDepthRange → export.png 出图像素正确 → project.save/open 往返
 3. Metal FX：wave-heightfield 入画布参与重光照与 max 深度融合（方向正确）；
    编辑器改代码保存 ≤1s 热更；注入语法错误出行号提示且画面不崩（保留上一可用版）
 4. 文档：docs/README 索引完整、双 README 与现状一致、两 repo AGENTS.md 齐备
-5. M1–M3.2 回归无退化（含拖拽实时融合预览、undo、工程存取、视口、快捷键）；
-   冷启动 8 秒无崩溃
+5. M1–M3.2 + M3.5 回归无退化（含拖拽实时融合预览、undo、工程存取、视口、快捷键、
+   光源 gizmo 显隐/锁定/跟随）；冷启动 8 秒无崩溃
 
 不做：stdio MCP、MCP resources/prompts、particle3D FX（核心字段已备，实现留 M5 后）、
 AI 算子（M5）、合成主链 Metal 化（M4 任务 4，与 MetalFXEngine 共用设备/队列时统一设计）。
