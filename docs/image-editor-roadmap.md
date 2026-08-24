@@ -1,6 +1,6 @@
 # RayDepthStudio 转正路线图：UI 示例 → 可用图像编辑器（固化 plan）
 
-> 日期：2026-08-23 · 状态：**M3.2 已完成 · M3.3 待激活（项目文档 + MCP 基座 + Metal FX 实时编辑，优先于 M4）**
+> 日期：2026-08-24 · 状态：**M3.5 已完成 · M3.3 待激活（项目文档 + MCP 基座 + Metal FX 实时编辑，优先于 M4；用户指示 MCP 适配尽快上）**
 > 项目：核心库 `~/Documents/kimi/workspace/RayDepthStudio`（SwiftPM 库）+ UI `~/Documents/kimi/workspace/RayDepthStudioUI`（SwiftPM executable，`swift run RayDepthStudioUI`）
 > 执行入口：skill `raydepth-editor-roadmap`（激活后按本文当前阶段执行）
 > 产品定位：基于深度的重光照图像编辑器（RayRelight 血统：depth → normal → 多光源着色）
@@ -533,3 +533,7 @@ depth 页签光源交互）；`LightSource` 无锁定/跟随字段（合成 Coda
 - 2026-08-24 · M3.2 验收通过 → **M3.3 立项（优先于 M4）**：项目文档体系 + MCP 基座 + Metal FX 实时编辑（用户指令）；M5（SAM3/BiRefNet/DA 深度重绘经 MCP 开放）、M6（架构重构与社区插件化）同步登记。修复方案见 M3.3 节；激活提示词固化到 `docs/m3.3-docs-mcp-metalfx-activation-prompt.md` 并登记入口；状态行与 skill 当前阶段已同步指向 M3.3
 - 2026-08-24 · **M3.4 立项**（排于 M3.3 后、M4 前）：检查器数值控件与颜色选择增强——depth min/max 滑杆扩域 −1...2 + 全部滑杆 value reset 按钮；光源颜色 RGB/HSV 可切换 + NSColorSampler 吸管 + 系统调色板（用户指令，附截图）。修复方案见 M3.4 节；激活提示词固化到 `docs/m3.4-inspector-controls-activation-prompt.md` 并登记入口。同日项目同步 GitHub（public，Psamathe 系列）：`psamathe-depth-studio`（核心库）+ `psamathe-depth-studio-ui`（UI）；agent 工作文档（docs/ 下各激活提示词等）gitignore，仅保留 roadmap 作为公开预期开发计划
 - 2026-08-24 · **M3.5 立项**（排于 M3.4 后、M4 前）：光源 gizmo 显隐与锁定/跟随（用户指令）——全局 gizmo 眼睛开关（隐藏即不可命中）；`LightSource` additive `isLocked`/`followsMouse`（Codable decodeIfPresent 向后兼容）；单灯锁定藏 gizmo 禁交互；锁定灯随鼠标移动（核心 `setFollowsMouse` 保证唯一，跟随期零提交走预览通道、结束单次提交入 undo）。修复方案见 M3.5 节；激活提示词固化到 `docs/m3.5-light-gizmo-visibility-lock-follow-activation-prompt.md` 并登记入口
+- 2026-08-24 · M3.5 完成：光源 gizmo 显隐与锁定/跟随。核心 additive：`LightSource += isLocked/followsMouse`（默认 false；自定义 `init(from:)` decodeIfPresent 回退，旧工程零迁移可开，编码仍全量写出）+ `LightingRig.setFollowsMouse`（唯一性约束收敛核心）。UI：顶栏眼睛开关 `lightsGizmosHidden`（视图态，与 lightsLocked 同级；隐藏时 drawLights 整体早退 + hitTestLight 返回 nil，合成光照不受影响）；锁定灯 gizmo 全不画、hitTest 跳过、空白拖主光源跳过锁定主灯、Light 页签自动选中跳过锁定灯、undo/redo pruneSelection 清锁定灯选中；检查器 Light 区加「锁定（隐藏圆点）」「随鼠标移动」（未锁定 disabled）两 toggle。跟随走 hover 链路（onContinuousHover → viewToCanvas → DragPreview + relight.previewLights 预览通道），跟随期零 @Published project 提交；结束（toggle 关/选中他灯/切页签/解锁）经 `withSingleUndo` 一次性提交最终位置 + followsMouse=false（一格 undo）；开第二盏跟随先提交第一盏最终位置（核心再清标志，双保险）。
+  - 决策点记录：「锁定时清除既有选中」与「锁定后才能开跟随」在检查器流程上互斥（清选中即检查器消失、跟随无从开启）——取最小冲突解：锁定 toggle 保留当前选中（gizmo/命中/拖动已被锁定态门控，点他处后不可再选），undo 回放产生的锁定态选中由 pruneSelection 清除。
+  - 验收：40 项 checks 全过（+4：默认关闭/开启跟随/唯一性/可关闭）；35 项 harness 全过（+G8 新字段往返、G9 旧工程无新键解码回退）；桌面 .app 更新为 0.3.5-m3.5（窗口标题版本戳），冷启动 8s 无崩溃；CU 实测：眼睛开关全局藏/显 gizmo、锁定灯圆点消失、锁定+跟随后鼠标划过画布光照实时跟随全程无 gizmo、检查器数值经 DragPreview 实时跟随；旧格式工程（无新字段）实机打开正常。跟随实时跟随与关跟随 undo 由用户目视确认通过
+  - 下一步：用户指示 MCP 适配尽快上 → M3.3（激活入口 `docs/m3.3-docs-mcp-metalfx-activation-prompt.md`）

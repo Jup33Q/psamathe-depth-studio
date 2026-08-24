@@ -230,6 +230,21 @@ do {
     check(primary.position == CGPoint(x: 123, y: 456), "鼠标控制主光源位置")
     check(project.lights.lights.contains(where: { $0.glowingFX }), "glowing fx 层可叠加")
 
+    // M3.5：光源锁定/随鼠标 additive 字段（默认关闭）+ 跟随唯一性（核心层约束）
+    let freshLight = LightSource(name: "Fresh")
+    check(!freshLight.isLocked && !freshLight.followsMouse, "光源锁定/跟随字段默认关闭")
+    let followA = project.lights.lights[0].id
+    let followB = project.lights.lights[1].id
+    project.lights.setFollowsMouse(followA, true)
+    check(project.lights.light(id: followA)?.followsMouse == true, "setFollowsMouse 开启跟随")
+    project.lights.setFollowsMouse(followB, true)
+    check(project.lights.light(id: followB)?.followsMouse == true
+          && project.lights.light(id: followA)?.followsMouse == false
+          && project.lights.lights.filter({ $0.followsMouse }).count == 1,
+          "随鼠标移动的光源最多一个（开第二个自动关第一个）")
+    project.lights.setFollowsMouse(followB, false)
+    check(project.lights.lights.allSatisfy { !$0.followsMouse }, "setFollowsMouse 可关闭跟随")
+
     // 法线管线：默认基于混合后结果
     check(project.normalPipeline.mix == .zOrderTop, "normal 基于混合后整幅深度")
 } catch {
