@@ -25,6 +25,7 @@
 | **M3.2** | 图块 chrome 降噪 | 常态无框无文字；hover/选中/拖拽才显示描边与信息 |
 | **M3.3** | 文档 + MCP + Metal FX（优先于 M4） | 文档体系化；MCP 基座（HTTP，skills 文档）；Metal FX 导入 + 实时编辑显示 |
 | **M3.4** | 检查器数值与颜色控件 | depth 滑杆扩域 + 每滑杆 reset；颜色 RGB/HSV/吸管/调色板 |
+| **M3.5** | 光源 gizmo 显隐与锁定/跟随 | 全局 gizmo 隐藏；单灯锁定（藏圆点）；锁定灯随鼠标（唯一） |
 | **M4** | 实时源与性能 | camera/NDI/Syphon 帧流、stream depth、Metal 化 |
 | **M5** | AI 算子经 MCP 开放 | SAM3 分割 / BiRefNet 抠图 / DA 深度重绘 + 算子 skills 文档 |
 | **M6** | 架构重构与社区插件化 | 插件协议/包格式/加载器 + 社区开发文档 |
@@ -360,6 +361,50 @@ value reset 按钮。②颜色格式支持仿 Xcode asset 颜色选项：经典 
 
 ---
 
+## M3.5 · 光源 gizmo 显隐与锁定/跟随
+
+> 执行入口：`docs/m3.5-light-gizmo-visibility-lock-follow-activation-prompt.md`（自包含激活提示词，2026-08-24 固化）
+
+**背景**（2026-08-24 用户指令）：光源 debug 圆点需要可以隐藏；单独的光源需要两种
+额外设置——①锁定（隐藏 debug 圆点）②锁定时随鼠标移动（随鼠标移动的最多只有一个
+光源）。现状：全局 `lightsLocked`（ViewModel @Published 视图态，顶栏锁按钮，仅门控
+depth 页签光源交互）；`LightSource` 无锁定/跟随字段（合成 Codable）；gizmo 常画
+（`CanvasRenderer.drawLights`：圆点 + 半径环 + 预览光晕 + 选中 halo）；空白处拖拽 =
+移动主光源；checks 有「鼠标控制主光源位置」项。
+
+任务（按序）：
+
+1. **核心库 additive 字段**（用户直接指令视为获批；纯增量不改既有行为）
+   - `LightSource` += `isLocked: Bool = false`、`followsMouse: Bool = false`
+   - Codable 向后兼容：自定义 `init(from:)` 用 `decodeIfPresent ?? false`（旧
+     project.json 无此键必须能加载）；harness G 区加两字段往返断言
+   - `LightingRig` += `mutating func setFollowsMouse(_ id: UUID, _ on: Bool)`：
+     开启时清除其他灯的 followsMouse（**最多一个**的约束放核心，checks 加断言）
+2. **全局 gizmo 显隐**：顶栏眼睛开关 `lightsGizmosHidden`（视图态，同 lightsLocked
+   一级）；隐藏时 `drawLights` 全部 gizmo 不画且光源不可命中（看不见的可点区域是陷阱）；
+   合成光照效果不受影响（gizmo 是纯 chrome）
+3. **单灯锁定**：锁定的灯 gizmo（圆点/环/预览光晕/选中 halo）不画、`hitTestLight`
+   跳过、不可选中/拖动；检查器 Light 区加「锁定（隐藏圆点）」toggle；
+   既有选中态若被锁定则清除选中
+4. **锁定灯随鼠标移动**：检查器加「随鼠标移动」toggle，仅 `isLocked` 时可开
+   （未锁定时 disabled）；开启走 `setFollowsMouse`（核心保证唯一）。鼠标在画布移动
+   （无拖拽）时该灯位置实时跟随：mouseMoved（现有 hover 监视链路）换算画布坐标 →
+   **DragPreview 式预览通道**驱动实时重着色，跟随期间零 `@Published project` 提交；
+   结束跟随（toggle 关 / 选中他灯 / 切页签）时一次性提交最终位置入 undo 栈
+
+验收：
+
+1. 36 项 checks（含 setFollowsMouse 唯一性新断言）+ 33 项 harness（含 G 区新字段往返）全过
+2. 目视：眼睛开关全局藏/显 gizmo；单灯锁定后圆点消失且拖不到；锁定灯开跟随后鼠标
+   划过画布光照实时跟随、全程无 gizmo；关跟随一键提交可 undo；两灯不能同时跟随
+   （开第二个自动关第一个）
+3. M1–M3.4 回归无退化（含拖拽实时融合预览、undo、工程存取——旧工程无新字段可开）；
+   冷启动 8 秒无崩溃
+
+不做：gizmo 配色主题化、非锁定灯跟随、跟随路径记录/动画。
+
+---
+
 ## M4 · 实时源与性能
 
 > 执行入口：`docs/m4-realtime-performance-activation-prompt.md`（自包含激活提示词，2026-08-24 固化）
@@ -487,3 +532,4 @@ value reset 按钮。②颜色格式支持仿 Xcode asset 颜色选项：经典 
   - 遗留：hover 态未经自动化验证（CU 截图链路被用户停用，由用户目视确认）；M1（打开图片/导出 PNG 目视）与 M1.5（Phokos 导入）人工回归沿袭
 - 2026-08-24 · M3.2 验收通过 → **M3.3 立项（优先于 M4）**：项目文档体系 + MCP 基座 + Metal FX 实时编辑（用户指令）；M5（SAM3/BiRefNet/DA 深度重绘经 MCP 开放）、M6（架构重构与社区插件化）同步登记。修复方案见 M3.3 节；激活提示词固化到 `docs/m3.3-docs-mcp-metalfx-activation-prompt.md` 并登记入口；状态行与 skill 当前阶段已同步指向 M3.3
 - 2026-08-24 · **M3.4 立项**（排于 M3.3 后、M4 前）：检查器数值控件与颜色选择增强——depth min/max 滑杆扩域 −1...2 + 全部滑杆 value reset 按钮；光源颜色 RGB/HSV 可切换 + NSColorSampler 吸管 + 系统调色板（用户指令，附截图）。修复方案见 M3.4 节；激活提示词固化到 `docs/m3.4-inspector-controls-activation-prompt.md` 并登记入口。同日项目同步 GitHub（public，Psamathe 系列）：`psamathe-depth-studio`（核心库）+ `psamathe-depth-studio-ui`（UI）；agent 工作文档（docs/ 下各激活提示词等）gitignore，仅保留 roadmap 作为公开预期开发计划
+- 2026-08-24 · **M3.5 立项**（排于 M3.4 后、M4 前）：光源 gizmo 显隐与锁定/跟随（用户指令）——全局 gizmo 眼睛开关（隐藏即不可命中）；`LightSource` additive `isLocked`/`followsMouse`（Codable decodeIfPresent 向后兼容）；单灯锁定藏 gizmo 禁交互；锁定灯随鼠标移动（核心 `setFollowsMouse` 保证唯一，跟随期零提交走预览通道、结束单次提交入 undo）。修复方案见 M3.5 节；激活提示词固化到 `docs/m3.5-light-gizmo-visibility-lock-follow-activation-prompt.md` 并登记入口
